@@ -1,9 +1,10 @@
 package form
 
 import (
-	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type ParamType int
@@ -33,10 +34,14 @@ func (f *Form) AddField(name string, opts ...FieldOpt) *Field {
 }
 
 func (f *Form) Parse(r *http.Request) error {
+	multiErr := make(MultiError, 0)
+
+fieldsLoop:
 	for _, field := range f.Fields {
 		if field.Required {
 			if _, ok := r.URL.Query()[field.Name]; !ok {
-				return errors.New("Value was not available")
+				multiErr.Add(fmt.Errorf("%s: required field missing", field.Name))
+				continue fieldsLoop
 			}
 		}
 
@@ -48,13 +53,18 @@ func (f *Form) Parse(r *http.Request) error {
 		case FormValue:
 			value = r.FormValue(field.Name)
 		default:
-			return errors.New("Unsupported ParamType")
+			multiErr.Add(fmt.Errorf("%s: ParamType %q not valid", field.Name, field.Type))
+			continue fieldsLoop
 		}
 
 		err := field.Value.Set(value)
 		if err != nil {
-			return err
+			multiErr.Add(fmt.Errorf("%s: %s", field.Name, err))
 		}
+	}
+
+	if len(multiErr) > 0 {
+		return &multiErr
 	}
 
 	return nil
@@ -118,4 +128,19 @@ func (stringField *StringField) Set(s string) error {
 	*(stringField.Field) = s
 
 	return nil
+}
+
+type MultiError []error
+
+func (m *MultiError) Add(err error) {
+	*m = append(*m, err)
+}
+
+func (m *MultiError) Error() string {
+	errString := ""
+	for _, err := range *m {
+		errString += err.Error() + "; "
+	}
+
+	return strings.TrimSuffix(errString, "; ")
 }

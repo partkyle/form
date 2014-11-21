@@ -168,3 +168,32 @@ func TestFormValueParams(t *testing.T) {
 		t.Errorf("did not load string; want %q, got %q", "isaac", bodyName)
 	}
 }
+
+func TestAllErrorsAreReturnedInOneCall(t *testing.T) {
+	request, err := http.NewRequest("GET", "http://example.com?user_id=1ad", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var userID int
+	var name string
+	form := Form{
+		Fields: []*Field{
+			{Name: "user_id", Value: &IntField{&userID}, Required: true},
+			{Name: "name", Value: &StringField{&name}, Required: true},
+		},
+	}
+
+	parseErr := form.Parse(request)
+	if parseErr == nil {
+		t.Fatal("expected an error on parsing request")
+	}
+
+	if !strings.Contains(parseErr.Error(), "user_id") {
+		t.Errorf("%s was not included in the error", "user_id")
+	}
+
+	if !strings.Contains(parseErr.Error(), "name") {
+		t.Errorf("%s was not included in the error", "name")
+	}
+}
