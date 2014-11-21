@@ -2,7 +2,6 @@ package form
 
 import (
 	"net/http"
-	"net/url"
 	"strings"
 	"testing"
 )
@@ -134,10 +133,12 @@ func TestOptionStyleInterface(t *testing.T) {
 }
 
 func TestFormValueParams(t *testing.T) {
-	request, err := http.NewRequest("POST", "http://example.com?user_id=180&name=tim", strings.NewReader(url.Values{"bodyName": {"isaac"}}.Encode()))
+	request, err := http.NewRequest("POST", "http://example.com?user_id=180&name=tim", strings.NewReader("name=isaac"))
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	var userID int
 	var name string
@@ -147,7 +148,7 @@ func TestFormValueParams(t *testing.T) {
 
 	form.AddField("user_id", FieldValue(&IntField{&userID}), QueryParam)
 	form.AddField("name", FieldValue(&StringField{&name}), QueryParam)
-	form.AddField("bodyName", FieldValue(&StringField{&bodyName}), FormValueParam)
+	form.AddField("name", FieldValue(&StringField{&bodyName}), FormValueParam)
 
 	parseErr := form.Parse(request)
 

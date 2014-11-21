@@ -46,12 +46,7 @@ func (f *Form) Parse(r *http.Request) error {
 		case Query:
 			value = r.URL.Query().Get(field.Name)
 		case FormValue:
-			// TODO(partkyle): figure out why the for is not posting correctly
-			err := r.ParseForm()
-			if err != nil {
-				return err
-			}
-			value = r.PostForm.Get(field.Name)
+			value = r.FormValue(field.Name)
 		default:
 			return errors.New("Unsupported ParamType")
 		}
